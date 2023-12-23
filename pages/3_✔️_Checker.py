@@ -1,6 +1,9 @@
 import streamlit as st
 import requests
-from bs4 import BeautifulSoup
+try:
+    from bs4 import BeautifulSoup
+except :
+    from BeautifulSoup import BeautifulSoup
 from urllib.parse import urljoin
 import asyncio
 
@@ -27,7 +30,7 @@ async def check_single_link(url, depth, max_depth, visited_links, broken_links):
             results = await asyncio.gather(*tasks)
 
     except Exception as e:
-        # st.warning(f"Error checking link {url}: {e}")
+        #st.warning(f"Error checking link {url}: {e}")
         pass
 
 async def main(url, depth):
@@ -58,6 +61,6 @@ given = st.selectbox("Please select the depth you'd like to check", ('1', '2', '
 if st.button("Check"):
     if url:
         with st.spinner("Checking links..."):
-            await main(url, int(given))
+            asyncio.run(main(url, int(given)))
     else:
         st.warning("Please enter a valid URL.")
