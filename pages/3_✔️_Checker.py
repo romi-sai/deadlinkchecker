@@ -6,35 +6,41 @@ except:
     from BeautifulSoup import BeautifulSoup
 from urllib.parse import urljoin
 
-def check_single_link(url, depth, max_depth, visited_links, broken_links):
-    if depth > max_depth or url in visited_links:
-        return
-
-    visited_links.add(url)
-
-    try:
-        response = requests.get(url)
-        if response.status_code == 404:
-            broken_links.append(str(url) + ': ' + str(response.status_code))
-
-        if 'text/html' in response.headers.get('Content-Type', ''):
-            soup = BeautifulSoup(response.text, 'html.parser')
-            links = soup.find_all('a', href=True)
-
-            for link in links:
-                next_url = urljoin(url, link['href'])
-                check_single_link(next_url, depth + 1, max_depth, visited_links, broken_links)
-
-    except Exception as e:
-        # st.warning(f"Error checking link {url}: {e}")
-        pass
-
-def main(url, depth):
+def check_links(url, max_depth):
     visited_links = set()
     broken_links = []
+    links_to_visit = [(url, 1)]
 
-    st.text(f"Checking links till depth: {depth}")
-    check_single_link(url, 1, depth, visited_links, broken_links)
+    while links_to_visit:
+        current_url, depth = links_to_visit.pop(0)
+
+        if depth > max_depth or current_url in visited_links:
+            continue
+
+        visited_links.add(current_url)
+
+        try:
+            response = requests.get(current_url)
+            if response.status_code == 404:
+                broken_links.append(f"{current_url}: {response.status_code}")
+
+            if 'text/html' in response.headers.get('Content-Type', ''):
+                soup = BeautifulSoup(response.text, 'html.parser')
+                links = soup.find_all('a', href=True)
+
+                for link in links:
+                    next_url = urljoin(current_url, link['href'])
+                    links_to_visit.append((next_url, depth + 1))
+
+        except Exception as e:
+            # st.warning(f"Error checking link {current_url}: {e}")
+            pass
+
+    return visited_links, broken_links
+
+def main(url, max_depth):
+    st.text(f"Checking links till depth: {max_depth}")
+    visited_links, broken_links = check_links(url, max_depth)
 
     st.text(f"Total links checked: {len(visited_links)}")
     st.text(f"Passed links: {len(visited_links) - len(broken_links)}")
